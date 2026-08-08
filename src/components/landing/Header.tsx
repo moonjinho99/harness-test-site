@@ -1,26 +1,23 @@
-"use client"
+import { ShoppingBag, ShoppingCart } from "lucide-react"
 
-import { useState } from "react"
-import { Menu, ShoppingBag, ShoppingCart, User, X } from "lucide-react"
-
+import { auth } from "@/auth"
+import { UserMenu } from "@/components/auth/user-menu"
 import { Button } from "@/components/ui/button"
+import { MobileNav } from "@/components/landing/MobileNav"
 
 const NAV_LINKS = [
   { href: "#home", label: "홈" },
   { href: "#products", label: "상품" },
   { href: "#categories", label: "카테고리" },
   { href: "#events", label: "이벤트" },
-]
+] as const
 
-export function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-
-  const handleToggle = () => setIsMenuOpen((prev) => !prev)
-  const handleClose = () => setIsMenuOpen(false)
+export async function Header() {
+  const session = await auth()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <a href="#home" className="flex items-center gap-2">
           <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm">
             <ShoppingBag className="size-5" />
@@ -57,45 +54,10 @@ export function Header() {
               3
             </span>
           </Button>
-          <Button variant="outline" size="sm" className="hidden sm:inline-flex">
-            <User />
-            로그인
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="메뉴 열기"
-            className="md:hidden"
-            onClick={handleToggle}
-          >
-            {isMenuOpen ? <X /> : <Menu />}
-          </Button>
+          <UserMenu session={session} />
+          <MobileNav links={NAV_LINKS} session={session} />
         </div>
       </div>
-
-      {isMenuOpen && (
-        <div className="border-t border-border/60 bg-background md:hidden">
-          <nav
-            aria-label="Mobile navigation"
-            className="mx-auto flex w-full max-w-7xl flex-col gap-1 px-4 py-3 sm:px-6"
-          >
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={handleClose}
-                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                {link.label}
-              </a>
-            ))}
-            <Button variant="outline" size="sm" className="mt-2 w-full">
-              <User />
-              로그인
-            </Button>
-          </nav>
-        </div>
-      )}
     </header>
   )
 }
