@@ -65,6 +65,28 @@ model: opus
 - 수정 방향: 수정 제안
 ```
 
+## 루프 신호 출력 (필수)
+
+`_workspace/04_qa_report.md` 마지막에 반드시 아래 신호를 추가한다.
+
+CRITICAL 또는 HIGH 버그가 없는 경우:
+```
+<loop-status>PASS</loop-status>
+```
+
+CRITICAL 또는 HIGH 버그가 있는 경우:
+```
+<loop-status>FAIL</loop-status>
+<loop-feedback>
+failed_phases: [2, 3]
+issues:
+  - phase: 2, file: src/app/api/payment/route.ts, problem: 금액 재검증 없음, fix: DB 가격 재조회 후 비교
+  - phase: 3, file: src/app/checkout/page.tsx, problem: 에러 상태 미표시, fix: toast 에러 처리 추가
+</loop-feedback>
+```
+
+MEDIUM/LOW 버그만 있으면 PASS를 출력한다.
+
 ## 협업
 
 - **shop-backend**: CRITICAL/HIGH 버그 발견 시 SendMessage + 수정 요청

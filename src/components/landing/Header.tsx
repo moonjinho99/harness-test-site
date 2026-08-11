@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button"
 import { MobileNav } from "@/components/landing/MobileNav"
 
 const NAV_LINKS = [
-  { href: "#home", label: "홈" },
-  { href: "#products", label: "상품" },
-  { href: "#categories", label: "카테고리" },
-  { href: "#events", label: "이벤트" },
+  { href: "/", label: "홈" },
+  { href: "/#products", label: "상품" },
+  { href: "/#categories", label: "카테고리" },
+  { href: "/#events", label: "이벤트" },
 ] as const
 
 export async function Header() {
@@ -18,7 +18,7 @@ export async function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="relative mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <a href="#home" className="flex items-center gap-2">
+        <a href="/" className="flex items-center gap-2">
           <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm">
             <ShoppingBag className="size-5" />
           </span>
@@ -50,9 +50,6 @@ export async function Header() {
             className="relative"
           >
             <ShoppingCart />
-            <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-semibold text-white">
-              3
-            </span>
           </Button>
           <UserMenu session={session} />
           <MobileNav links={NAV_LINKS} session={session} />
