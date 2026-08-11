@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/button"
 import { updateProfile } from "@/lib/user-actions"
 
 type Props = {
-  name: string
   phone: string
   marketingOptIn: boolean
 }
 
-export function ProfileForm({ name, phone, marketingOptIn }: Props) {
+export function ProfileForm({ phone, marketingOptIn }: Props) {
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [isPending, setIsPending] = useState(false)
 
@@ -21,34 +20,23 @@ export function ProfileForm({ name, phone, marketingOptIn }: Props) {
     setStatus(null)
 
     const formData = new FormData(e.currentTarget)
-    const result = await updateProfile(formData)
-
-    setIsPending(false)
-    if (result?.error) {
-      setStatus({ type: "error", message: result.error })
-    } else {
-      setStatus({ type: "success", message: "프로필이 저장되었습니다." })
+    try {
+      const result = await updateProfile(formData)
+      if (result?.error) {
+        setStatus({ type: "error", message: result.error })
+      } else {
+        setStatus({ type: "success", message: "프로필이 저장되었습니다." })
+        setTimeout(() => setStatus(null), 3000)
+      }
+    } catch {
+      setStatus({ type: "error", message: "오류가 발생했습니다. 다시 시도해주세요." })
+    } finally {
+      setIsPending(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div>
-        <label htmlFor="name" className="mb-1.5 block text-sm font-medium">
-          이름 <span className="text-destructive">*</span>
-        </label>
-        <input
-          id="name"
-          name="name"
-          type="text"
-          defaultValue={name}
-          required
-          maxLength={50}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          placeholder="이름을 입력하세요"
-        />
-      </div>
-
       <div>
         <label htmlFor="phone" className="mb-1.5 block text-sm font-medium">
           전화번호

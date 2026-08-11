@@ -80,7 +80,6 @@ export default async function MyPage() {
           <Separator className="mt-4" />
           <CardContent className="pt-6">
             <ProfileForm
-              name={user.name ?? ""}
               phone={user.phone ?? ""}
               marketingOptIn={user.marketingOptIn}
             />

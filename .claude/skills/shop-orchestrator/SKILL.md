@@ -65,7 +65,7 @@ shop-architect → shop-backend → shop-frontend → shop-qa 순으로 진행.
 
 `nextjs-shop-patterns` 스킬의 Server/Client Component 분리 원칙을 반드시 참조.
 
-## Phase 4: QA 검증
+## Phase 4: QA 검증 + 루프
 
 **실행 모드:** 단독 서브 에이전트 (Phase 2, 3 완료 후)
 
@@ -79,17 +79,41 @@ shop-architect → shop-backend → shop-frontend → shop-qa 순으로 진행.
 
 QA 결과: `_workspace/04_qa_report.md`
 
-CRITICAL 버그 발견 시 해당 에이전트(Phase 2 또는 3)를 재호출하여 수정 후 재검증.
+### 루프 메커니즘 (최대 3회)
+
+QA 완료 후 `_workspace/04_qa_report.md` 끝의 `<loop-status>` 신호를 읽는다.
+
+**PASS 신호** → 루프 종료, 완료 보고
+
+**FAIL 신호** → 아래 절차를 따른다:
+1. `_workspace/loop_state.md`에서 현재 반복 횟수 확인 (없으면 1회차로 초기화)
+2. **반복 횟수 ≥ 3이면**: 더 이상 재시도하지 않고 미해결 버그를 사용자에게 보고 후 종료
+3. **반복 횟수 < 3이면**:
+   - `_workspace/loop_state.md`의 횟수를 +1 증가
+   - QA 리포트의 `<loop-feedback>` 블록을 읽어 수정 대상 Phase 확인
+   - 백엔드 이슈 있음 → `shop-backend` 에이전트를 피드백과 함께 재호출
+   - 프론트엔드 이슈 있음 → `shop-frontend` 에이전트를 피드백과 함께 재호출
+   - 재구현 완료 후 `shop-qa`를 다시 호출 (Phase 4 반복)
 
 ## 데이터 전달 프로토콜
 
 - **중간 산출물**: `_workspace/` 폴더 (파일 기반), 파일명: `{phase번호}_{내용}.md`
 - **최종 산출물**: 프로젝트 루트 (`src/`, `prisma/`, `tests/`)
 
+## 루프 상태 파일
+
+`_workspace/loop_state.md` 형식:
+```
+iteration: 1          # 현재 반복 횟수 (최대 3)
+last_qa_status: FAIL  # PASS | FAIL
+failed_phases: [2, 3] # 재실행이 필요한 Phase 번호
+```
+
+Phase 0에서 `_workspace/loop_state.md`가 존재하면 읽어 이전 루프 상태를 파악한다.
+
 ## 에러 핸들링
 
 - 에이전트 실패: 1회 재시도 → 재실패 시 `_workspace/04_qa_report.md`에 명시하고 진행
-- CRITICAL 버그: 담당 에이전트 재호출 → 수정 → QA 재검증
 - PG 연동 실패: 에러 상세 기록 + 사용자에게 API 키/도메인 등록 확인 요청
 
 ## 테스트 시나리오

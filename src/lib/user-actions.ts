@@ -7,7 +7,6 @@ import { auth } from "@/auth"
 import { db } from "@/lib/db"
 
 const UpdateProfileSchema = z.object({
-  name: z.string().min(1, "이름을 입력해주세요").max(50, "이름은 50자 이내로 입력해주세요"),
   phone: z
     .string()
     .refine(
@@ -24,7 +23,6 @@ export async function updateProfile(
   if (!session?.user?.id) return { error: "로그인이 필요합니다" }
 
   const parsed = UpdateProfileSchema.safeParse({
-    name: formData.get("name"),
     phone: String(formData.get("phone") ?? ""),
     marketingOptIn: formData.get("marketingOptIn") === "true",
   })
@@ -33,12 +31,11 @@ export async function updateProfile(
     return { error: parsed.error.issues[0].message }
   }
 
-  const { name, phone, marketingOptIn } = parsed.data
+  const { phone, marketingOptIn } = parsed.data
 
   await db.user.update({
     where: { id: session.user.id },
     data: {
-      name,
       phone: phone || null,
       marketingOptIn,
     },
