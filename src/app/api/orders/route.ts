@@ -72,12 +72,12 @@ export async function POST(req: Request) {
         const product = productById.get(line.productId);
         if (!product) throw new Error(`PRODUCT_NOT_FOUND:${line.productId}`);
 
-        // Server-authoritative stock decrement using conditional update.
-        const dec = await tx.product.updateMany({
-          where: { id: product.id, stock: { gte: line.quantity } },
-          data: { stock: { decrement: line.quantity } },
-        });
-        if (dec.count === 0) throw new Error(`OUT_OF_STOCK:${product.id}`);
+        // Stock validation only — no decrement here.
+        // Actual decrement happens on payment confirmation to avoid holding
+        // inventory for orders that never complete checkout.
+        if (product.stock < line.quantity) {
+          throw new Error(`OUT_OF_STOCK:${product.id}`);
+        }
 
         itemsSubtotal += product.price * line.quantity;
         orderItemsData.push({

@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+import { NextResponse } from "next/server";
 import { typedDb, type PaymentStatus } from "@/lib/prisma-shapes";
 import { ok, fail } from "@/lib/apiResponse";
 
@@ -23,7 +25,25 @@ const STATUS_MAP: Record<string, PaymentStatus> = {
   WAITING_FOR_DEPOSIT: "IN_PROGRESS",
 };
 
+function verifyTossSignature(request: Request): boolean {
+  const webhookSecret = process.env.TOSS_WEBHOOK_SECRET;
+  // If secret not configured, skip verification (dev-only path).
+  // ponytail: env-toggle, tighten to strict-required in staging/prod once secret is provisioned.
+  if (!webhookSecret) return true;
+
+  const authHeader = request.headers.get("authorization") ?? "";
+  const expected = `Basic ${Buffer.from(`${webhookSecret}:`).toString("base64")}`;
+  const expectedBuf = Buffer.from(expected);
+  const actualBuf = Buffer.from(authHeader);
+  if (expectedBuf.length !== actualBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, actualBuf);
+}
+
 export async function POST(req: Request) {
+  if (!verifyTossSignature(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   let payload: TossWebhookPayload;
   try {
     payload = (await req.json()) as TossWebhookPayload;
@@ -40,28 +60,38 @@ export async function POST(req: Request) {
 
   const payment = await db.payment.findUnique({ where: { paymentKey } });
   if (!payment) {
-    // Unknown payment — acknowledge to prevent retries but log.
+    // Unknown paymentKey — acknowledge with 200 so Toss stops retrying.
     console.warn("[payments.webhook] unknown paymentKey", paymentKey);
     return ok({ acknowledged: true });
   }
 
-  await db.$transaction(async (tx) => {
-    await tx.payment.update({
-      where: { paymentKey },
-      data: { status: mapped, rawResponse: payload as unknown },
+  // Idempotency: already-DONE payment — skip reprocessing.
+  if (mapped === "DONE" && payment.status === "DONE") {
+    return ok({ acknowledged: true, skipped: "already_done" });
+  }
+
+  try {
+    await db.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { paymentKey },
+        data: { status: mapped, rawResponse: payload as unknown },
+      });
+      if (mapped === "CANCELED") {
+        await tx.order.update({
+          where: { id: payment.orderId },
+          data: { status: "CANCELED" },
+        });
+      } else if (mapped === "DONE") {
+        await tx.order.update({
+          where: { id: payment.orderId },
+          data: { status: "PAID" },
+        });
+      }
     });
-    if (mapped === "CANCELED") {
-      await tx.order.update({
-        where: { id: payment.orderId },
-        data: { status: "CANCELED" },
-      });
-    } else if (mapped === "DONE") {
-      await tx.order.update({
-        where: { id: payment.orderId },
-        data: { status: "PAID" },
-      });
-    }
-  });
+  } catch (err) {
+    console.error("[payments.webhook] processing failed", err);
+    return fail("Webhook processing failed", 500);
+  }
 
   return ok({ acknowledged: true });
 }
