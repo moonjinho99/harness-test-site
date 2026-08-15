@@ -70,3 +70,32 @@ enum Role {
   CUSTOMER
   ADMIN
 }
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  emoji     String    @default("")
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  description   String?  @db.Text
+  price         Int
+  originalPrice Int?
+  stock         Int      @default(0)
+  images        String[]
+  categoryId    String
+  category      Category @relation(fields: [categoryId], references: [id])
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([createdAt])
+}

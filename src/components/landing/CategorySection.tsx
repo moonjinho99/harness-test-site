@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 const CATEGORIES = [
   { name: "의류", emoji: "👗", tint: "from-rose-100 to-rose-50" },
   { name: "전자제품", emoji: "🎧", tint: "from-indigo-100 to-indigo-50" },
@@ -24,19 +26,19 @@ export function CategorySection() {
             원하는 카테고리를 골라보세요
           </h2>
         </div>
-        <a
-          href="#categories"
+        <Link
+          href="/products"
           className="text-sm font-medium text-muted-foreground hover:text-foreground"
         >
           전체보기 →
-        </a>
+        </Link>
       </div>
 
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {CATEGORIES.map((category) => (
           <li key={category.name}>
-            <a
-              href={`#category-${category.name}`}
+            <Link
+              href={`/products?category=${encodeURIComponent(category.name)}`}
               className="group flex h-full flex-col items-center gap-3 rounded-2xl border border-border/60 bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-100/50 dark:hover:border-indigo-800/60 dark:hover:shadow-none"
             >
               <span
@@ -48,7 +50,7 @@ export function CategorySection() {
               <span className="text-sm font-medium text-foreground">
                 {category.name}
               </span>
-            </a>
+            </Link>
           </li>
         ))}
       </ul>
