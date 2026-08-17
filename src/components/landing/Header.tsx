@@ -1,4 +1,5 @@
 import { ShoppingBag, ShoppingCart } from "lucide-react"
+import Link from "next/link"
 
 import { auth } from "@/auth"
 import { UserMenu } from "@/components/auth/user-menu"
@@ -43,14 +44,13 @@ export async function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
+          <Link
+            href="/cart"
             aria-label="장바구니"
-            className="relative"
+            className="relative inline-flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            <ShoppingCart />
-          </Button>
+            <ShoppingCart className="size-4" />
+          </Link>
           <UserMenu session={session} />
           <MobileNav links={NAV_LINKS} session={session} />
         </div>

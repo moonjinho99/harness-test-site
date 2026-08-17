@@ -45,7 +45,6 @@ export function AddToCartButton({ productId, stock }: Props) {
     const ok = await addToCart()
     if (!ok) return
     setStatus("added")
-    setTimeout(() => setStatus("idle"), 2000)
   }
 
   async function handleBuyNow() {
@@ -57,21 +56,25 @@ export function AddToCartButton({ productId, stock }: Props) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button
-          size="lg"
-          className="flex-1"
-          onClick={handleAddToCart}
-          disabled={outOfStock || status === "loading"}
-        >
-          <ShoppingCart className="mr-2 size-4" />
-          {status === "added"
-            ? "담겼어요 ✓"
-            : status === "loading"
-              ? "처리 중..."
-              : outOfStock
-                ? "품절"
-                : "장바구니 담기"}
-        </Button>
+        {status === "added" ? (
+          <a
+            href="/cart"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-green-600 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-green-700"
+          >
+            <ShoppingCart className="size-4" />
+            장바구니 보기
+          </a>
+        ) : (
+          <Button
+            size="lg"
+            className="flex-1"
+            onClick={handleAddToCart}
+            disabled={outOfStock || status === "loading"}
+          >
+            <ShoppingCart className="mr-2 size-4" />
+            {status === "loading" ? "처리 중..." : outOfStock ? "품절" : "장바구니 담기"}
+          </Button>
+        )}
         <Button
           size="lg"
           variant="outline"
