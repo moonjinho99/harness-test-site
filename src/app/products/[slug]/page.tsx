@@ -1,9 +1,9 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { ChevronLeft, ShoppingCart, Star } from "lucide-react"
+import { ChevronLeft, Star } from "lucide-react"
 
+import { AddToCartButton } from "@/components/shop/AddToCartButton"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { formatCount, formatPrice, getProductBySlug } from "@/lib/products"
 
@@ -79,30 +79,25 @@ export default async function ProductDetailPage({
             <span className="text-3xl font-semibold text-foreground">
               {formatPrice(product.price)}
             </span>
-            <span className="text-sm text-muted-foreground line-through">
-              {formatPrice(product.originalPrice)}
-            </span>
-            <span className="text-sm font-semibold text-rose-500">
-              -{product.discount}%
-            </span>
+            {product.discount > 0 && (
+              <>
+                <span className="text-sm text-muted-foreground line-through">
+                  {formatPrice(product.originalPrice)}
+                </span>
+                <span className="text-sm font-semibold text-rose-500">
+                  -{product.discount}%
+                </span>
+              </>
+            )}
           </div>
 
           <p className="mt-6 leading-relaxed text-muted-foreground">
             {product.description}
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Button size="lg" className="flex-1" disabled>
-              <ShoppingCart />
-              장바구니 담기
-            </Button>
-            <Button size="lg" variant="outline" className="flex-1" disabled>
-              바로 구매하기
-            </Button>
+          <div className="mt-8">
+            <AddToCartButton productId={product.id} stock={product.stock} />
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            * 결제 기능은 준비 중입니다.
-          </p>
         </div>
       </div>
     </main>
