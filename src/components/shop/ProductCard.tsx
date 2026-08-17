@@ -1,4 +1,3 @@
-import Image from "next/image"
 import Link from "next/link"
 import { Star } from "lucide-react"
 
@@ -29,12 +28,11 @@ export function ProductCard({ product }: ProductCardProps) {
           aria-hidden="true"
         >
           {product.images[0] ? (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
               src={product.images[0]}
               alt={product.name}
-              fill
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
             <span className="text-6xl transition-transform duration-500 group-hover:scale-110">
