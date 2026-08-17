@@ -27,9 +27,18 @@ export function ProductCard({ product }: ProductCardProps) {
           style={{ marginLeft: 0, marginRight: 0, marginTop: 0 }}
           aria-hidden="true"
         >
-          <span className="text-6xl transition-transform duration-500 group-hover:scale-110">
-            {product.emoji}
-          </span>
+          {product.images[0] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={product.images[0]}
+              alt={product.name}
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <span className="text-6xl transition-transform duration-500 group-hover:scale-110">
+              {product.emoji}
+            </span>
+          )}
           {product.discount > 0 && (
             <Badge
               variant="default"
