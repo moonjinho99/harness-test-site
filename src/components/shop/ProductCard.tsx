@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import { Star } from "lucide-react"
 
@@ -27,9 +28,19 @@ export function ProductCard({ product }: ProductCardProps) {
           style={{ marginLeft: 0, marginRight: 0, marginTop: 0 }}
           aria-hidden="true"
         >
-          <span className="text-6xl transition-transform duration-500 group-hover:scale-110">
-            {product.emoji}
-          </span>
+          {product.images[0] ? (
+            <Image
+              src={product.images[0]}
+              alt={product.name}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            />
+          ) : (
+            <span className="text-6xl transition-transform duration-500 group-hover:scale-110">
+              {product.emoji}
+            </span>
+          )}
           {product.discount > 0 && (
             <Badge
               variant="default"

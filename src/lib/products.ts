@@ -544,7 +544,7 @@ function prismaToProduct(row: ProductWithCategory): Product {
     reviews: 0,
     category: row.category.name,
     categorySlug: row.category.slug,
-    emoji: row.images[0] ?? row.category.emoji,
+    emoji: row.category.emoji ?? "",
     accent: "from-slate-200 to-slate-100",
     description: row.description ?? "",
     stock: row.stock,
