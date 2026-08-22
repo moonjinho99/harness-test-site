@@ -90,6 +90,12 @@ export async function POST(req: Request) {
       data: { status: "PAID" },
       include: { items: true },
     });
+    for (const item of updatedOrder.items ?? []) {
+      await tx.product.updateMany({
+        where: { id: item.productId, stock: { gte: item.quantity } },
+        data: { stock: { decrement: item.quantity } },
+      });
+    }
     return { payment, order: updatedOrder };
   });
 

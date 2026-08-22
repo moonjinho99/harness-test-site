@@ -32,10 +32,17 @@ export async function POST(req: Request) {
   if (!order) return fail("Order not found", 404);
   if (order.userId !== session.user.id && session.user.role !== "ADMIN")
     return fail("Forbidden", 403);
-  if (!order.payment || order.payment.status !== "DONE")
-    return fail("Payment not in DONE state", 409);
   if (order.status === "SHIPPED" || order.status === "DELIVERED")
     return fail("배송이 시작된 주문은 취소할 수 없습니다.", 409);
+
+  // PENDING: 결제 미완료 주문 — Toss 호출 없이 바로 취소
+  if (order.status === "PENDING") {
+    await db.order.update({ where: { id: order.id }, data: { status: "CANCELED" } });
+    return ok({ canceled: true });
+  }
+
+  if (!order.payment || order.payment.status !== "DONE")
+    return fail("Payment not in DONE state", 409);
 
   const tossResponse = await cancelPayment(order.payment.paymentKey, cancelReason);
   if (tossResponse.code) {
