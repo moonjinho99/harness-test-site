@@ -1,7 +1,8 @@
 "use client"
 
 import Script from "next/script"
-import { useMemo, useState } from "react"
+import { useEffect, useRef, useMemo, useState } from "react"
+import type { PaymentWidgetInstance } from "@tosspayments/payment-widget-sdk"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -47,6 +48,10 @@ declare global {
 
 export function CheckoutForm({ cartLines, user }: Props) {
   const totals = useMemo(() => calculateTotals(cartLines), [cartLines])
+  const widgetRef = useRef<PaymentWidgetInstance | null>(null)
+  type MethodsWidget = ReturnType<PaymentWidgetInstance["renderPaymentMethods"]>
+  const methodsWidgetRef = useRef<MethodsWidget | null>(null)
+  const [widgetReady, setWidgetReady] = useState(false)
   const [form, setForm] = useState<ShippingForm>({
     recipient: user.name ?? "",
     phone: user.phone ?? "",
@@ -57,6 +62,34 @@ export function CheckoutForm({ cartLines, user }: Props) {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
+    if (!clientKey) return
+    let cancelled = false
+
+    ;(async () => {
+      const { loadPaymentWidget } = await import("@tosspayments/payment-widget-sdk")
+      const widget = await loadPaymentWidget(clientKey, user.id)
+      if (cancelled) return
+      widgetRef.current = widget
+      methodsWidgetRef.current = await widget.renderPaymentMethods("#toss-payment-methods", { value: totals.total })
+      await widget.renderAgreement("#toss-agreement")
+      setWidgetReady(true)
+    })().catch((err: unknown) => {
+      if (!cancelled) setError("결제 위젯을 불러오지 못했어요. 새로고침 후 다시 시도해주세요.")
+      console.error(err)
+    })
+
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id])
+
+  useEffect(() => {
+    if (methodsWidgetRef.current && widgetReady) {
+      methodsWidgetRef.current.updateAmount(totals.total)
+    }
+  }, [totals.total, widgetReady])
 
   const update = <K extends keyof ShippingForm>(key: K, value: ShippingForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -90,10 +123,9 @@ export function CheckoutForm({ cartLines, user }: Props) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const validationError = validate()
-    if (validationError) {
-      setError(validationError)
-      return
-    }
+    if (validationError) { setError(validationError); return }
+    if (!widgetRef.current) { setError("결제 위젯이 준비되지 않았어요."); return }
+
     setError(null)
     setIsSubmitting(true)
 
@@ -124,22 +156,11 @@ export function CheckoutForm({ cartLines, user }: Props) {
       }
       const orderData = orderBody.data
 
-      const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk")
-      const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY
-      if (!clientKey) {
-        throw new Error("결제 설정이 누락되었어요. 관리자에게 문의해주세요.")
-      }
-      const tossPayments = await loadTossPayments(clientKey)
-      const payment = tossPayments.payment({ customerKey: user.id })
-
       const firstName = cartLines[0]?.product.name ?? "상품"
       const restCount = cartLines.length - 1
-      const orderName =
-        restCount > 0 ? `${firstName} 외 ${restCount}건` : firstName
+      const orderName = restCount > 0 ? `${firstName} 외 ${restCount}건` : firstName
 
-      await payment.requestPayment({
-        method: "CARD",
-        amount: { currency: "KRW", value: orderData.totalAmount },
+      await widgetRef.current.requestPayment({
         orderId: orderData.orderNumber,
         orderName,
         successUrl: `${window.location.origin}/checkout/success`,
@@ -266,6 +287,15 @@ export function CheckoutForm({ cartLines, user }: Props) {
               </ul>
             </CardContent>
           </Card>
+
+          {/* 결제 위젯 */}
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="mb-4 text-lg font-semibold">결제 수단</h2>
+              <div id="toss-payment-methods" />
+              <div id="toss-agreement" className="mt-4" />
+            </CardContent>
+          </Card>
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:h-fit">
@@ -300,9 +330,9 @@ export function CheckoutForm({ cartLines, user }: Props) {
                 type="submit"
                 size="lg"
                 className="mt-2 w-full"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !widgetReady}
               >
-                {isSubmitting ? "결제 요청 중..." : "결제하기"}
+                {isSubmitting ? "결제 요청 중..." : widgetReady ? "결제하기" : "위젯 로딩 중..."}
               </Button>
               <p className="text-xs text-muted-foreground">
                 결제 진행 시 이용약관 및 개인정보 처리방침에 동의한 것으로

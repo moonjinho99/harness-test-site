@@ -42,9 +42,9 @@ export async function POST(req: Request) {
     return fail(tossResponse.message ?? "결제 취소에 실패했습니다.", 402);
   }
 
-  const items = order.items ?? [];
   await db.$transaction(async (tx) => {
-    // Restore stock.
+    // Restore stock — re-read inside tx for isolation.
+    const items = await tx.orderItem.findMany({ where: { orderId: order.id } });
     for (const item of items) {
       await tx.product.updateMany({
         where: { id: item.productId },
