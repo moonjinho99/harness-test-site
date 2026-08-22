@@ -49,6 +49,8 @@ declare global {
 export function CheckoutForm({ cartLines, user }: Props) {
   const totals = useMemo(() => calculateTotals(cartLines), [cartLines])
   const widgetRef = useRef<PaymentWidgetInstance | null>(null)
+  type MethodsWidget = ReturnType<PaymentWidgetInstance["renderPaymentMethods"]>
+  const methodsWidgetRef = useRef<MethodsWidget | null>(null)
   const [widgetReady, setWidgetReady] = useState(false)
   const [form, setForm] = useState<ShippingForm>({
     recipient: user.name ?? "",
@@ -71,7 +73,7 @@ export function CheckoutForm({ cartLines, user }: Props) {
       const widget = await loadPaymentWidget(clientKey, user.id)
       if (cancelled) return
       widgetRef.current = widget
-      await widget.renderPaymentMethods("#toss-payment-methods", { value: totals.total })
+      methodsWidgetRef.current = await widget.renderPaymentMethods("#toss-payment-methods", { value: totals.total })
       await widget.renderAgreement("#toss-agreement")
       setWidgetReady(true)
     })().catch((err: unknown) => {
@@ -80,9 +82,14 @@ export function CheckoutForm({ cartLines, user }: Props) {
     })
 
     return () => { cancelled = true }
-  // totals.total은 페이지 진입 시 고정값 — 마운트 시 1회만 초기화
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id])
+
+  useEffect(() => {
+    if (methodsWidgetRef.current && widgetReady) {
+      methodsWidgetRef.current.updateAmount(totals.total)
+    }
+  }, [totals.total, widgetReady])
 
   const update = <K extends keyof ShippingForm>(key: K, value: ShippingForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }))

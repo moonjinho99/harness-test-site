@@ -27,9 +27,12 @@ const STATUS_MAP: Record<string, PaymentStatus> = {
 
 function verifyTossSignature(request: Request): boolean {
   const webhookSecret = process.env.TOSS_WEBHOOK_SECRET;
-  // If secret not configured, skip verification (dev-only path).
-  // ponytail: env-toggle, tighten to strict-required in staging/prod once secret is provisioned.
-  if (!webhookSecret) return true;
+  if (!webhookSecret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("TOSS_WEBHOOK_SECRET must be configured in production");
+    }
+    return true; // dev-only
+  }
 
   const authHeader = request.headers.get("authorization") ?? "";
   const expected = `Basic ${Buffer.from(`${webhookSecret}:`).toString("base64")}`;
@@ -65,9 +68,8 @@ export async function POST(req: Request) {
     return ok({ acknowledged: true });
   }
 
-  // Idempotency: already-DONE payment — skip reprocessing.
-  if (mapped === "DONE" && payment.status === "DONE") {
-    return ok({ acknowledged: true, skipped: "already_done" });
+  if (payment.status === mapped) {
+    return ok({ acknowledged: true, skipped: "already_in_state" });
   }
 
   try {

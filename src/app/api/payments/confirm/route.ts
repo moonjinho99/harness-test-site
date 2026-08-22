@@ -37,24 +37,28 @@ export async function POST(req: Request) {
   // Toss failure — response contains a `code` field on error.
   if (tossResponse.code) {
     await db.$transaction(async (tx) => {
-      await tx.payment.upsert({
-        where: { orderId: order.id },
-        create: {
-          orderId: order.id,
-          paymentKey,
-          amount,
-          status: "FAILED",
-          failureCode: tossResponse.code ?? null,
-          failureMessage: tossResponse.message ?? null,
-          rawResponse: tossResponse as unknown,
-        },
-        update: {
-          status: "FAILED",
-          failureCode: tossResponse.code ?? null,
-          failureMessage: tossResponse.message ?? null,
-          rawResponse: tossResponse as unknown,
-        },
-      });
+      // Race condition guard: don't overwrite an already-DONE payment.
+      const existing = await tx.payment.findUnique({ where: { orderId: order.id } });
+      if (!existing || existing.status !== "DONE") {
+        await tx.payment.upsert({
+          where: { orderId: order.id },
+          create: {
+            orderId: order.id,
+            paymentKey,
+            amount,
+            status: "FAILED",
+            failureCode: tossResponse.code ?? null,
+            failureMessage: tossResponse.message ?? null,
+            rawResponse: tossResponse as unknown,
+          },
+          update: {
+            status: "FAILED",
+            failureCode: tossResponse.code ?? null,
+            failureMessage: tossResponse.message ?? null,
+            rawResponse: tossResponse as unknown,
+          },
+        });
+      }
     });
     return fail(tossResponse.message ?? "결제 승인에 실패했습니다.", 402);
   }
